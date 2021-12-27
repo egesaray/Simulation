@@ -139,10 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ISimObj.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Simulation.cpp" />
-    <ClCompile Include="TrafficParticipant.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
