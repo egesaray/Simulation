@@ -2,6 +2,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include<windows.h>
 
 const int INVALID_INT = -99999;
 
@@ -121,29 +122,29 @@ private:
 
 class Simulation {
 public:
-	vector<unique_ptr<TrafficParticipant>> trafficParticipants ;
-	float currentSimulationTime;
+	vector<unique_ptr<TrafficParticipant>> *trafficParticipants ;
+	double currentSimulationTime;
 
-	void Start(vector<unique_ptr<TrafficParticipant>> StrafficParticipants) {
-		//trafficParticipants = StrafficParticipants;      // ??????????????????????
+	void Start(vector<unique_ptr<TrafficParticipant>> &StrafficParticipants) {
+		trafficParticipants = &StrafficParticipants;
 		currentSimulationTime = 0.0f;
 	}
 	double GetSimSec() {
 		return currentSimulationTime;
 	}
 	void Update(double deltaTime) {
-		for (auto & ptr : trafficParticipants)
+		for (auto & ptr : *trafficParticipants)
 		{
 			ptr->update(deltaTime);
 		}
 		currentSimulationTime = deltaTime;
 	}
 	void Print() {
-		for (auto& ptr : trafficParticipants)
+		for (auto& ptr : *trafficParticipants)
 		{
 			ptr->Print();
 		}
-		cout << "current simulation time: " << currentSimulationTime;
+		cout << "current simulation time: " << currentSimulationTime <<"\n";
 	}
 };
 
@@ -158,7 +159,7 @@ int main() {
 	float x, y, heading;
 	double current_speed, goal_speed,acceleration;
 	string name;
-	bool isWalking;
+	string isWalking;
 
 	vector<unique_ptr<TrafficParticipant>> participants;
 
@@ -179,7 +180,7 @@ int main() {
 			cin >> heading;
 			cout << "current speed:  ";
 			cin >> current_speed;
-			cout << "goal speed";
+			cout << "goal speed:  ";
 			cin >> goal_speed;
 			cout << "acceleration  ";
 			cin >> acceleration;
@@ -194,29 +195,37 @@ int main() {
 			cin >> y;
 			cout << "Position heading:  ";
 			cin >> heading;
-			cout << "isWalking[true/false]:  ";
+			cout << "isWalking[Y/N]:  ";
 			cin >> isWalking;
-			participants.push_back(unique_ptr<TrafficParticipant>( new Pedestrian(Point{ x,y,heading }, isWalking, name)));
+			if (isWalking =="Y")
+			{
+				participants.push_back(unique_ptr<TrafficParticipant>(new Pedestrian(Point{ x,y,heading }, true, name)));
+			}else if(isWalking == "N") {
+				participants.push_back(unique_ptr<TrafficParticipant>(new Pedestrian(Point{ x,y,heading }, false, name)));
+			}
 		}
 
 	}
 	
-	/*
+	
 	S.Start(participants);
-	cout << "\n Enter simulation tmie in seconds...";
+	cout << "\n Enter simulation time in seconds:  ";
 	double simulationTime;
 	cin >> simulationTime;
 
-	for (size_t i = 0; i < simulationTime; i++) // should iterate after 0.1 sec ? for now let's imagine i=10 means 1 second
-	{
-		S.Update(i/10);
 
-		if (i%10 == 0)
+	int i = 0;
+	simulationTime *= 10;
+	while (i < simulationTime) {
+		Sleep(100);
+		i += 1;
+		S.Update(i/10);
+		if (i%10 ==0)
 		{
 			S.Print();
 		}
 	}
-	*/
+
 
 	return 0;
 }
