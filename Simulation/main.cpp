@@ -2,13 +2,18 @@
 #include <memory>
 #include <vector>
 #include <string>
-#include<windows.h>
+#include <math.h>
+#include <stdio.h>
+#include <chrono>
+#include <thread>
 
 const int INVALID_INT = -99999;
+#define PI 3.14159265
 
 using namespace std;
 struct Point {
-	float X, Y, heading;
+	float X, Y; // meter
+	float heading; //degrees
 };
 
 class ISimObj {
@@ -52,9 +57,26 @@ public:
 		cout << "acceleration : " << acceleration << "\n";
 	};
 
-	void update(double deltaTime) {
+	void update(float deltaTime) {
 
-		//math
+
+		//dikey bileþen sin(heading)* current_speed
+		float Vy = sin(position.heading* PI/180) * current_speed;
+		float Vx = cos(position.heading* PI/180) * current_speed;
+		
+		float chageInX = (Vx * deltaTime) + (0.5*acceleration*deltaTime * deltaTime);
+		position.X += chageInX;
+		float chageInY = (Vy * deltaTime) + (0.5 * acceleration * deltaTime * deltaTime);
+		position.Y += chageInY;
+		
+
+
+		current_speed = current_speed +(acceleration * deltaTime);
+		if (current_speed >= speed_goal)
+		{
+			acceleration = 0.0f;
+		}
+
 
 	}
 protected:
@@ -74,9 +96,7 @@ public:
 		vehicle_maker {Svehicle_maker}
 	{}
 
-	~Vehicle(){
-		TrafficParticipant::~TrafficParticipant();
-	}
+	~Vehicle(){}
 
 	void SetSpeedGoal(double Sspeed_goal,double Sacceleration) {
 		speed_goal = Sspeed_goal;
@@ -104,9 +124,7 @@ public:
 		}
 	}
 	
-	~Pedestrian() {
-		//TrafficParticipant::~TrafficParticipant();
-	}
+	~Pedestrian() {}
 
 	void Print() override {
 		cout << "***Pedestrian class print***\n";
@@ -132,12 +150,12 @@ public:
 	double GetSimSec() {
 		return currentSimulationTime;
 	}
-	void Update(double deltaTime) {
+	void Update(float deltaTime) {
 		for (auto & ptr : *trafficParticipants)
 		{
 			ptr->update(deltaTime);
 		}
-		currentSimulationTime = deltaTime;
+		currentSimulationTime += deltaTime;
 	}
 	void Print() {
 		for (auto& ptr : *trafficParticipants)
@@ -210,17 +228,20 @@ int main() {
 	
 	S.Start(participants);
 	cout << "\n Enter simulation time in seconds:  ";
-	double simulationTime;
+	int simulationTime;
 	cin >> simulationTime;
 
 
-	int i = 0;
-	simulationTime *= 10;
-	while (i < simulationTime) {
-		Sleep(100);
-		i += 1;
-		S.Update(i/10);
-		if (i%10 ==0)
+	float realSecond = 0;
+	int roundedSecond = 0;
+	while (realSecond < simulationTime) {
+
+		this_thread::sleep_for(chrono::milliseconds(100));
+
+		realSecond += 0.1;
+		roundedSecond++;
+		S.Update(0.1);
+		if (roundedSecond%10 ==0)
 		{
 			S.Print();
 		}
