@@ -16,11 +16,11 @@ struct Point {
 	float heading; //degrees
 };
 
-class ISimObj {
+class ISimObj {     //changed (*Interface classes have pure virtual member functions.)
 public:
-	virtual void SetPosition(double x, double y, double Sheading) {};
-	virtual void SetSpeed(double Sspeed_goal) {};
-	virtual void Print() {};
+	virtual void SetPosition() = 0;
+	virtual void SetSpeed()=0;
+	virtual void Print()=0;
 };
 
 class TrafficParticipant : public ISimObj {
@@ -32,35 +32,26 @@ public:
 		acceleration{Sacceleration}
 	{}
 
-	~TrafficParticipant() {
-		current_speed = INVALID_INT;
-		speed_goal = INVALID_INT;
-		acceleration = INVALID_INT;
-		position.heading = INVALID_INT;
-		position.X = INVALID_INT;
-		position.Y = INVALID_INT;
-	}
+	virtual ~TrafficParticipant() = default; // changed (*Destructor should be virtual.)
 
-	void SetPosition(double x, double y, double Sheading) override {
+	void SetPosition(double x, double y, double Sheading) {
 		position.X= x;
 		position.Y = y;
 		position.heading = Sheading;
 	};
 
-	void SetSpeed( double Sspeed_goal) override {
+	void SetSpeed( double Sspeed_goal) {
 		speed_goal = Sspeed_goal;
 	};
 	void Print() override {
-		cout << "Position:  X: " << position.X << "  Y: " << position.Y << "  heading: " << position.heading << "\n";
-		cout << "current_speed : " << current_speed <<"\n";
-		cout << "speed_goal : " << speed_goal << "\n";
-		cout << "acceleration : " << acceleration << "\n";
+		std::cout << "Position:  X: " << position.X << "  Y: " << position.Y << "  heading: " << position.heading << "\n";
+		std::cout << "current_speed : " << current_speed <<"\n";
+		std::cout << "speed_goal : " << speed_goal << "\n";
+		std::cout << "acceleration : " << acceleration << "\n";
 	};
 
 	void update(float deltaTime) {
 
-
-		//dikey bileþen sin(heading)* current_speed
 		float Vy = sin(position.heading* PI/180) * current_speed;
 		float Vx = cos(position.heading* PI/180) * current_speed;
 		
@@ -104,8 +95,8 @@ public:
 	}
 
 	void Print() override {
-		cout << "***Vehicle class print***\n";
-		cout << "vehicle_maker : " << vehicle_maker << "\n";
+		std::cout << "***Vehicle class print***\n";
+		std::cout << "vehicle_maker : " << vehicle_maker << "\n";
 		TrafficParticipant::Print();
 	}
 private:
@@ -117,12 +108,9 @@ public:
 
 	Pedestrian(Point Sposition, bool isWalking, string Sname) :
 		person_name{ Sname },
-		TrafficParticipant(Sposition, 0.0f, 0.0f, 0.0f)
-	{
-		if (isWalking == true){
-			current_speed = walk_speed;
-		}
-	}
+		//TrafficParticipant(Sposition, 0.0f, 0.0f, 0.0f)
+		TrafficParticipant(Sposition, (isWalking ? current_speed: walk_speed),0,0) // changed
+	{}
 	
 	~Pedestrian() {}
 
@@ -134,31 +122,32 @@ public:
 
 private:
 	std::string person_name;
-	const float walk_speed = 1.5f;
+	static constexpr double walk_speed = 1.5; // changed (*Use static const expr to define walking speed)
 };
 
 
-class Simulation {
+class Simulation { // changed (	*Start method shall get a vector, and move it to the member attribute vector.
+	// * Using a vector raw pointer is not sensible, then you would need to use a destructor)
 public:
-	vector<unique_ptr<TrafficParticipant>> *trafficParticipants ;
+	vector<unique_ptr<TrafficParticipant>> trafficParticipants ;
 	double currentSimulationTime;
 
-	void Start(vector<unique_ptr<TrafficParticipant>> &StrafficParticipants) {
-		trafficParticipants = &StrafficParticipants;
+	void Start(vector<unique_ptr<TrafficParticipant>> StrafficParticipants) {
+		trafficParticipants = move(StrafficParticipants);
 		currentSimulationTime = 0.0f;
 	}
 	double GetSimSec() {
 		return currentSimulationTime;
 	}
 	void Update(float deltaTime) {
-		for (auto & ptr : *trafficParticipants)
+		for (auto & ptr : trafficParticipants)
 		{
 			ptr->update(deltaTime);
 		}
 		currentSimulationTime += deltaTime;
 	}
 	void Print() {
-		for (auto& ptr : *trafficParticipants)
+		for (auto& ptr : trafficParticipants)
 		{
 			ptr->Print();
 		}
@@ -170,7 +159,7 @@ public:
 int main() {
 
 	Simulation S;
-	cout << "enter number of traffic particiants ...\n";
+	std::cout << "enter number of traffic particiants ...\n";
 	int noOfTrafficParticipants;
 	cin >> noOfTrafficParticipants;
 	
@@ -179,47 +168,49 @@ int main() {
 	string name;
 	string isWalking;
 
-	vector<unique_ptr<TrafficParticipant>> participants;
+	vector<unique_ptr<TrafficParticipant>> participants{ noOfTrafficParticipants }; //changed (* Set the size of vector at the creation)
 
-	for (size_t i = 0; i <noOfTrafficParticipants; i++)
+	for (size_t i = 0; i <5; ++i) //changed (* Prefer pre-increment rather than post-increment)
 	{
-		cout << "Enter Type vehicle or pedestrian [V,P] \n";
+		std::cout << "Enter Type vehicle or pedestrian [V,P] \n";
 		char type;
-		cin >> type;
+		std::cin >> type;
 		if (type == 'V')
 		{
-			cout << "Enter maker_name:  ";
-			cin >> name;
-			cout << "Position X:  ";
-			cin >> x;
-			cout << "Position Y:  ";
-			cin >> y;
-			cout << "Position heading:  ";
-			cin >> heading;
-			cout << "current speed:  ";
-			cin >> current_speed;
-			cout << "goal speed:  ";
-			cin >> goal_speed;
-			cout << "acceleration  ";
-			cin >> acceleration;
-			participants.push_back(unique_ptr<TrafficParticipant>(new Vehicle(Point{ x,y,heading }, current_speed, goal_speed, acceleration, name)));
+			std::cout << "Enter maker_name:  ";
+			std::cin >> name;
+			std::cout << "Position X:  ";
+			std::cin >> x;
+			std::cout << "Position Y:  ";
+			std::cin >> y;
+			std::cout << "Position heading:  ";
+			std::cin >> heading;
+			std::cout << "current speed:  ";
+			std::cin >> current_speed;
+			std::cout << "goal speed:  ";
+			std::cin >> goal_speed;
+			std::cout << "acceleration  ";
+			std::cin >> acceleration;
+			participants[i] = make_unique<Vehicle>(Point{ x,y,heading }, current_speed, goal_speed, acceleration, name); // changed (* The vector unique_ptr type shall be TrafficParicipant, but its element shall be created as Vehicle or Pedestrian to avoid object slicing.
+			// * Prefer make_unique to create unique pointer)
 		}
 		else if (type == 'P') {
-			cout << "Enter person_name:  ";
-			cin >> name;
-			cout << "Position X:  ";
-			cin >> x;
-			cout << "Position Y:  ";
-			cin >> y;
-			cout << "Position heading:  ";
-			cin >> heading;
-			cout << "isWalking[Y/N]:  ";
-			cin >> isWalking;
-			if (isWalking =="Y")
-			{
-				participants.push_back(unique_ptr<TrafficParticipant>(new Pedestrian(Point{ x,y,heading }, true, name)));
+			std::cout << "Enter person_name:  ";
+			std::cin >> name;
+			std::cout << "Position X:  ";
+			std::cin >> x;
+			std::cout << "Position Y:  ";
+			std::cin >> y;
+			std::cout << "Position heading:  ";
+			std::cin >> heading;
+			std::cout << "isWalking[Y/N]:  ";
+			std::cin >> isWalking;
+			if (isWalking =="Y"){
+				participants[i] = make_unique<Pedestrian>(Point{ x,y,heading }, true, name); // changed (* The vector unique_ptr type shall be TrafficParicipant, but its element shall be created as Vehicle or Pedestrian to avoid object slicing.
+			// * Prefer make_unique to create unique pointer)
 			}else if(isWalking == "N") {
-				participants.push_back(unique_ptr<TrafficParticipant>(new Pedestrian(Point{ x,y,heading }, false, name)));
+				participants[i] = make_unique<Pedestrian>(Point{ x,y,heading }, false, name); // changed (* The vector unique_ptr type shall be TrafficParicipant, but its element shall be created as Vehicle or Pedestrian to avoid object slicing.
+			// * Prefer make_unique to create unique pointer)
 			}
 		}
 
@@ -229,22 +220,19 @@ int main() {
 	S.Start(participants);
 	cout << "\n Enter simulation time in seconds:  ";
 	int simulationTime;
-	cin >> simulationTime;
+	std::cin >> simulationTime;
 
 
-	float realSecond = 0;
-	int roundedSecond = 0;
-	while (realSecond < simulationTime) {
+	int loopCounter = 0;
+	while (S.GetSimSec() < simulationTime) { // changed (*manage simulation time in the simulation class)
 
 		this_thread::sleep_for(chrono::milliseconds(100));
 
-		realSecond += 0.1;
-		roundedSecond++;
 		S.Update(0.1);
-		if (roundedSecond%10 ==0)
-		{
+		if (loopCounter %10 ==0){
 			S.Print();
 		}
+		loopCounter++;
 	}
 
 
